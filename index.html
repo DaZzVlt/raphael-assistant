@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06111c">
+  <meta name="description" content="Configura Raphael Assistant paso a paso. Tus claves se guardan en tu propio PC.">
+  <title>Núcleo de Sabiduría — Raphael</title>
+  <link rel="stylesheet" href="portal.css">
+  <script src="portal.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Núcleo de Sabiduría Raphael, inicio">
+      <span class="brand-mark" aria-hidden="true">R</span>
+      <span><strong>Núcleo de Sabiduría</strong><small>RAPHAEL ASSISTANT</small></span>
+    </a>
+    <span class="header-link">Configuración segura en tu PC</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">TU ASISTENTE, CONFIGURADO A TU MANERA</p>
+      <h1>Despierta el <span>núcleo</span> de Raphael.</h1>
+      <p class="hero-copy">Sigue estos pasos para conectar tu asistente. Si Raphael está abierto en este PC, puedes enviar la configuración directamente; tus claves no pasan por este sitio.</p>
+      <div id="connection-status" class="connection-status is-checking" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="connection-message">Buscando a Raphael en este equipo…</span>
+      </div>
+      <p id="raphael-name" class="raphael-name" hidden></p>
+    </section>
+
+    <section class="steps" aria-label="Configuración paso a paso">
+      <article class="card step-card" id="configuration">
+        <div class="step-heading">
+          <span class="step-number">01</span>
+          <div><p class="eyebrow">EL CEREBRO</p><h2>Conecta Gemini gratis</h2></div>
+        </div>
+        <p>Consigue tu clave personal de Google AI Studio. Solo toma un momento:</p>
+        <ol class="quick-steps">
+          <li><span>1</span><span>Inicia sesión con tu Gmail.</span></li>
+          <li><span>2</span><span>Pulsa <strong>Create API Key</strong> y copia la clave.</span></li>
+        </ol>
+        <a class="button button-secondary" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
+          <span aria-hidden="true">↗</span> Obtener Gemini API Key gratis
+        </a>
+        <label class="field-label" for="gemini-key">Pega aquí tu Gemini API Key</label>
+        <div class="input-action">
+          <input id="gemini-key" name="gemini_api_key" type="password" autocomplete="off" spellcheck="false" placeholder="Tu clave de Gemini" aria-describedby="key-note">
+          <button class="button button-primary" id="send-gemini" type="button">⚡ Enviar a mi Raphael</button>
+        </div>
+        <small id="key-note" class="field-note">Se envía directamente a Raphael en 127.0.0.1. No la guardamos en esta página.</small>
+      </article>
+
+      <article class="card step-card">
+        <div class="step-heading">
+          <span class="step-number">02</span>
+          <div><p class="eyebrow">TUS CUENTAS</p><h2>Conecta con un clic</h2></div>
+        </div>
+        <p>Autoriza cada servicio desde la ventana de Raphael en tu PC. Puedes conectar solo los que quieras.</p>
+        <div class="connect-list">
+          <div class="connect-row">
+            <span class="connect-icon" aria-hidden="true">G</span>
+            <span class="connect-copy"><strong>Google</strong><small>Inicia sesión para vincular tus servicios.</small></span>
+            <button class="button button-outline" type="button" data-oauth="google">🔗 Conectar mi cuenta de Google</button>
+          </div>
+          <div class="connect-row">
+            <span class="connect-icon spotify" aria-hidden="true">♫</span>
+            <span class="connect-copy"><strong>Spotify</strong><small>Agrega tu Client ID aquí o en Raphael. No necesitas Client Secret si usas PKCE.</small></span>
+            <button class="button button-outline" type="button" data-oauth="spotify">🎵 Conectar mi Spotify</button>
+          </div>
+          <div class="spotify-setup">
+            <label class="field-label" for="spotify-client-id">Spotify Client ID <span class="optional">(necesario para Spotify)</span></label>
+            <input id="spotify-client-id" autocomplete="off" spellcheck="false" placeholder="Client ID de tu app de Spotify">
+            <label class="field-label" for="spotify-client-secret">Client Secret <span class="optional">(opcional con PKCE)</span></label>
+            <input id="spotify-client-secret" type="password" autocomplete="off" spellcheck="false" placeholder="Déjalo vacío para usar PKCE">
+            <small class="field-note">El Client ID se crea en Spotify for Developers. La Redirect URI de Raphael debe estar registrada en la app.</small>
+          </div>
+          <div class="connect-row">
+            <span class="connect-icon whatsapp" aria-hidden="true">◉</span>
+            <span class="connect-copy"><strong>WhatsApp</strong><small>Abre el lector QR en Raphael y vincula tu teléfono.</small></span>
+            <button class="button button-outline" type="button" data-oauth="whatsapp">📱 Vincular WhatsApp por QR</button>
+          </div>
+        </div>
+      </article>
+
+      <details class="card advanced-card">
+        <summary>
+          <span class="step-number">03</span>
+          <span><span class="eyebrow">OPCIONAL</span><strong>Opcionales avanzados</strong><small>Discord y voz Azure — no son necesarios para empezar.</small></span>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="advanced-content">
+          <div class="advanced-intro">
+            <h2>Solo si los necesitas</h2>
+            <p>Raphael funciona sin estas integraciones. Las credenciales se guardan únicamente en tu equipo.</p>
+          </div>
+          <label class="field-label" for="discord-token">Discord Bot Token</label>
+          <input id="discord-token" type="password" autocomplete="off" spellcheck="false" placeholder="Token privado del bot">
+          <label class="field-label" for="discord-user-id">Tu Discord User ID <span class="optional">(opcional)</span></label>
+          <input id="discord-user-id" autocomplete="off" inputmode="numeric" placeholder="ID numérico de usuario">
+          <label class="field-label" for="azure-key">Azure Speech Key <span class="optional">(opcional)</span></label>
+          <input id="azure-key" type="password" autocomplete="off" spellcheck="false" placeholder="Edge TTS neuronal gratis es la alternativa automática">
+          <label class="field-label" for="azure-region">Azure Speech Region</label>
+          <input id="azure-region" autocomplete="off" placeholder="Por ejemplo: eastus">
+          <button class="button button-primary advanced-save" id="send-advanced" type="button">Guardar opciones en Raphael</button>
+        </div>
+      </details>
+
+      <section class="card backup-card" aria-labelledby="backup-title">
+        <div class="backup-copy">
+          <p class="eyebrow">SIN RAPHAEL CERCA</p>
+          <h2 id="backup-title">¿Estás en otro dispositivo?</h2>
+          <p>Prepara un archivo <code>.env</code> con los datos que hayas escrito aquí. En tu PC, cópialo a <code>%LOCALAPPDATA%\Raphael_Core\.env</code>; si ya existe, conserva también las demás variables de configuración.</p>
+        </div>
+        <button class="button button-secondary" id="download-env" type="button">💾 Descargar archivo de configuración automática</button>
+        <small>El archivo se descarga solo a tu dispositivo. Contiene credenciales en texto legible: guárdalo en privado y elimínalo después de importarlo.</small>
+      </section>
+
+      <p id="action-status" class="action-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="./"><span class="brand-mark" aria-hidden="true">R</span><span><strong>Raphael</strong><small>PRIVACIDAD EN TU EQUIPO</small></span></a>
+    <nav aria-label="Información legal">
+      <a href="privacidad.html">Política de Privacidad</a>
+      <a href="terminos.html">Términos de Servicio</a>
+    </nav>
+    <p>Raphael Assistant es una aplicación de escritorio local.</p>
+  </footer>
+</body>
+</html>

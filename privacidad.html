@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06111c">
+  <meta name="description" content="Política de Privacidad de Raphael Assistant.">
+  <title>Política de Privacidad — Raphael</title>
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    .legal { max-width: 760px; margin: 0 auto; padding: 55px 0 75px; }
+    .legal h1 { margin-bottom: 10px; font-size: clamp(34px, 6vw, 48px); letter-spacing: -.045em; }
+    .legal h2 { margin: 32px 0 9px; color: var(--cyan); font-size: 19px; }
+    .legal p, .legal li { color: #b6c8d2; font-size: 14px; line-height: 1.8; }
+    .legal ul { padding-left: 22px; }
+    .legal .updated { color: var(--muted); font-size: 12px; }
+    .back-link { display: inline-block; margin-bottom: 24px; color: var(--cyan); font-size: 13px; text-decoration: none; }
+    @media (max-width: 700px) { .legal { padding-top: 38px; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">R</span><span><strong>Núcleo de Sabiduría</strong><small>RAPHAEL ASSISTANT</small></span></a>
+    <a class="header-link" href="terminos.html">Términos de Servicio</a>
+  </header>
+  <main class="legal">
+    <a class="back-link" href="index.html">← Volver a Raphael</a>
+    <p class="eyebrow">TRANSPARENCIA Y CONTROL LOCAL</p>
+    <h1>Política de Privacidad</h1>
+    <p class="updated">Última actualización: 3 de noviembre de 2026</p>
+
+    <p>Esta política describe cómo <strong>Raphael Assistant</strong> (en adelante, “Raphael”) trata la información cuando utilizas la aplicación de escritorio y el portal de configuración. Raphael está diseñado para funcionar localmente en el ordenador del usuario; no operamos un servidor central que recopile las credenciales guardadas por la aplicación.</p>
+
+    <h2>1. Información y credenciales</h2>
+    <p>La aplicación puede procesar la clave de Gemini, credenciales opcionales de Discord o Azure Speech, y tokens de autorización de los servicios que elijas conectar. La configuración de la aplicación se guarda en el dispositivo del usuario, normalmente en <code>%LOCALAPPDATA%\Raphael_Core</code> en Windows. Las credenciales de configuración se escriben en el archivo local <code>.env</code>; los tokens de Google y otros datos de autorización se guardan en archivos locales de la carpeta de datos de Raphael. Los archivos locales no son una caja fuerte cifrada: quien tenga acceso a tu cuenta de Windows o a esos archivos podría leerlos.</p>
+    <p>El portal de configuración de GitHub Pages no recibe las claves que escribes. Si Raphael está abierto, el navegador envía la configuración directamente al puente de loopback <code>127.0.0.1</code> del propio ordenador. Como alternativa, el portal puede generar un archivo <code>.env</code> en tu navegador: la descarga queda bajo tu control y contiene solo los campos que hayas escrito. No descargues ni compartas ese archivo en un equipo público.</p>
+
+    <h2>2. Servicios de terceros que tú autorizas</h2>
+    <p>Cuando activas una integración, Raphael se comunica directamente desde tu dispositivo con el proveedor correspondiente para prestar esa función. Por ejemplo, Gemini procesa solicitudes que envía el asistente; Google procesa la autorización y las llamadas a las APIs que aceptes; Spotify procesa las solicitudes musicales autorizadas; y Discord o Microsoft pueden procesar las funciones que habilites. Esos proveedores reciben los datos necesarios para sus servicios y los tratan conforme a sus propias políticas. El hecho de que Raphael no envíe tus credenciales a un servidor operado por nosotros no significa que las solicitudes de los servicios autorizados no lleguen a sus respectivos proveedores.</p>
+    <p>Raphael no vende datos personales ni comparte las credenciales locales con fines publicitarios. No operamos un backend que almacene copias de las claves o tokens de tu instalación.</p>
+    <p>Si solicitas que Raphael analice, redacte o resuma contenido obtenido de una integración, la información necesaria para esa función puede enviarse desde el dispositivo a la API del modelo de inteligencia artificial que hayas configurado. Evita pedir el procesamiento de información sensible que no quieras enviar a ese proveedor y revisa sus condiciones de privacidad y tratamiento de datos.</p>
+
+    <h2>3. Permisos de Google</h2>
+    <p>Si autorizas Google Workspace, Raphael solicita permisos para Google Calendar, Tasks, Gmail (lectura y redacción), Drive (solo lectura), Sheets y Contactos (solo lectura). Los permisos se usan para ofrecer las funciones correspondientes: consultar y gestionar eventos o tareas, buscar mensajes y preparar borradores, leer archivos, trabajar con hojas de cálculo y consultar contactos. La autorización se realiza mediante Google y queda asociada a tu cuenta. Puedes revocar el acceso desde la configuración de seguridad de tu cuenta de Google; la revocación puede impedir que las funciones correspondientes sigan funcionando. Google trata los datos de acuerdo con su propia política de privacidad.</p>
+
+    <h2>4. Conservación y eliminación</h2>
+    <p>Los datos de configuración y tokens se conservan localmente hasta que los elimines o revoques. Puedes borrar las credenciales locales de Raphael eliminando los archivos correspondientes de <code>%LOCALAPPDATA%\Raphael_Core</code>; cerrar sesión desde una integración o revocar una aplicación conectada desde el proveedor también puede invalidar sus tokens. Eliminar un archivo local no elimina datos que un proveedor ya haya procesado conforme a sus políticas.</p>
+
+    <h2>5. Seguridad y tus responsabilidades</h2>
+    <p>Protege tu sesión de Windows y no publiques, envíes ni incluyas archivos <code>.env</code> o tokens en repositorios, capturas, correos o servicios compartidos. El puente local solo escucha en <code>127.0.0.1</code> y limita los orígenes web permitidos; esto no sustituye las medidas de seguridad de tu equipo ni convierte un archivo de credenciales en almacenamiento cifrado.</p>
+
+    <h2>6. Menores y cambios</h2>
+    <p>Raphael no está dirigido a menores que no puedan autorizar por sí mismos el uso de los servicios conectados. Esta política puede actualizarse cuando cambien las funciones o las obligaciones aplicables. La versión vigente se publicará en esta página.</p>
+
+    <h2>7. Contacto</h2>
+    <p>Para preguntas sobre esta política, utiliza el canal de contacto o soporte que publique el distribuidor de la versión de Raphael que instalaste. Esta página no recoge formularios ni direcciones de correo.</p>
+  </main>
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true">R</span><span><strong>Raphael</strong><small>PRIVACIDAD EN TU EQUIPO</small></span></a>
+    <nav aria-label="Información legal"><a href="privacidad.html">Política de Privacidad</a><a href="terminos.html">Términos de Servicio</a></nav>
+    <p>Aplicación de escritorio local.</p>
+  </footer>
+</body>
+</html>
