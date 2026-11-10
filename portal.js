@@ -44,6 +44,7 @@
     actionStatus.textContent = message;
     actionStatus.classList.toggle("is-success", kind === "success");
     actionStatus.classList.toggle("is-error", kind === "error");
+    actionStatus.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   async function postToRaphael(endpoint, payload) {
@@ -57,6 +58,57 @@
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Raphael no pudo completar la solicitud.");
     return result;
+  }
+
+  // NUEVO: Captura automática cuando Spotify o Google redirigen de vuelta a esta GitHub Page con ?code=...
+  async function handleIncomingOAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    const state = params.get("state") || "spotify";
+    const fullCallbackUrl = window.location.href;
+
+    if (!code && !error) return;
+
+    // Limpiar el ?code=... de la barra de direcciones para que la URL quede limpia y estética
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    if (error) {
+      report(`❌ Autorización cancelada o denegada (${error}).`, "error");
+      return;
+    }
+
+    report("🔄 Autorización recibida. Sincronizando token directamente con Raphael en tu PC…");
+
+    try {
+      // 1. Enviar por el puente principal de Raphael (127.0.0.1:8765/oauth_callback)
+      const result = await postToRaphael("/oauth_callback", {
+        service: state.includes("google") ? "google" : "spotify",
+        code,
+        state,
+        redirect_url: fullCallbackUrl,
+      });
+
+      report(
+        result.message || "✅ ¡Cuenta vinculada con éxito en Raphael! Ya puedes volver a la aplicación.",
+        "success",
+      );
+      await checkRaphael();
+    } catch (bridgeErr) {
+      // 2. Fallback automático: si Spotipy abrió su propio listener en 127.0.0.1:8888/callback
+      try {
+        await fetch(`http://127.0.0.1:8888/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
+          mode: "no-cors",
+          signal: AbortSignal.timeout(4000),
+        });
+        report("✅ ¡Código entregado a Raphael (puerto 8888)! Ya puedes cerrar esta pestaña.", "success");
+      } catch {
+        report(
+          `⚠️ Recibimos tu código de autorización, pero Raphael no respondió en tu PC (${bridgeErr.message}). Abre Raphael e inténtalo de nuevo.`,
+          "error",
+        );
+      }
+    }
   }
 
   function collectCredentials() {
@@ -160,6 +212,11 @@
           }
         }
         const result = await postToRaphael("/trigger_oauth", { service });
+        // Si el backend de Raphael devuelve una auth_url directa, redirigir el navegador de inmediato
+        if (result.auth_url) {
+          window.location.href = result.auth_url;
+          return;
+        }
         report(
           service === "whatsapp"
             ? "Raphael abrió el panel de WhatsApp. Escanea el QR con tu teléfono."
@@ -192,6 +249,8 @@
     }
   });
 
-  checkRaphael();
+  checkRaphael().then(() => {
+    handleIncomingOAuthCallback();
+  });
   window.setInterval(checkRaphael, 5000);
 })();
