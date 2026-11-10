@@ -248,7 +248,43 @@
       report(error.message, "error");
     }
   });
+// Detecta tanto ?code=... (si Spotify volvió directo a GitHub) como ?oauth_success=1 (si pasó por 127.0.0.1:8888 y redirigió aquí)
+  async function handleIncomingOAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    const oauthSuccess = params.get("oauth_success");
+    const service = params.get("service") || "spotify";
 
+    if (!code && !error && !oauthSuccess) return;
+
+    // Limpia la URL en el navegador para que quede siempre https://dazzvlt.github.io/raphael-assistant/
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    if (oauthSuccess === "1") {
+      report(`✅ ¡${service.toUpperCase()} vinculado con éxito en tu PC! Ya puedes volver a Raphael.`, "success");
+      return;
+    }
+
+    if (error) {
+      report(`❌ Autorización cancelada o denegada (${error}).`, "error");
+      return;
+    }
+
+    report("🔄 Enviando autorización directamente a Raphael en tu PC…");
+    try {
+      const result = await postToRaphael("/oauth_callback", {
+        service,
+        code,
+        redirect_url: window.location.origin + window.location.pathname,
+      });
+      report(result.message || "✅ ¡Cuenta conectada en Raphael!", "success");
+      await checkRaphael();
+    } catch {
+      await fetch(`http://127.0.0.1:8888/callback?code=${encodeURIComponent(code)}`, { mode: "no-cors" });
+      report("✅ ¡Autorización enviada a Raphael! Ya puedes volver a la aplicación.", "success");
+    }
+  }
   checkRaphael().then(() => {
     handleIncomingOAuthCallback();
   });
