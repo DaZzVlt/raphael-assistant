@@ -6,6 +6,7 @@
   const connectionMessage = document.querySelector("#connection-message");
   const nameLabel = document.querySelector("#raphael-name");
   const actionStatus = document.querySelector("#action-status");
+  let oauthPollTimer = null;
 
   function showConnection(online, message, name = "") {
     statusBox.classList.toggle("is-online", online);
@@ -56,59 +57,94 @@
       signal: AbortSignal.timeout(12000),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Raphael no pudo completar la solicitud.");
+    if (!response.ok) {
+      throw new Error(result.error || "Raphael no pudo completar la solicitud.");
+    }
     return result;
   }
 
-  // NUEVO: Captura automática cuando Spotify o Google redirigen de vuelta a esta GitHub Page con ?code=...
-  async function handleIncomingOAuthCallback() {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const error = params.get("error");
-    const state = params.get("state") || "spotify";
-    const fullCallbackUrl = window.location.href;
-
-    if (!code && !error) return;
-
-    // Limpiar el ?code=... de la barra de direcciones para que la URL quede limpia y estética
-    window.history.replaceState({}, document.title, window.location.pathname);
-
-    if (error) {
-      report(`❌ Autorización cancelada o denegada (${error}).`, "error");
-      return;
+  function stopOAuthPolling() {
+    if (oauthPollTimer) {
+      window.clearInterval(oauthPollTimer);
+      oauthPollTimer = null;
     }
+  }
 
-    report("🔄 Autorización recibida. Sincronizando token directamente con Raphael en tu PC…");
+  function startOAuthPolling(service) {
+    stopOAuthPolling();
+    const startedAt = Date.now();
 
-    try {
-      // 1. Enviar por el puente principal de Raphael (127.0.0.1:8765/oauth_callback)
-      const result = await postToRaphael("/oauth_callback", {
-        service: state.includes("google") ? "google" : "spotify",
-        code,
-        state,
-        redirect_url: fullCallbackUrl,
-      });
-
-      report(
-        result.message || "✅ ¡Cuenta vinculada con éxito en Raphael! Ya puedes volver a la aplicación.",
-        "success",
-      );
-      await checkRaphael();
-    } catch (bridgeErr) {
-      // 2. Fallback automático: si Spotipy abrió su propio listener en 127.0.0.1:8888/callback
-      try {
-        await fetch(`http://127.0.0.1:8888/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
-          mode: "no-cors",
-          signal: AbortSignal.timeout(4000),
-        });
-        report("✅ ¡Código entregado a Raphael (puerto 8888)! Ya puedes cerrar esta pestaña.", "success");
-      } catch {
+    oauthPollTimer = window.setInterval(async () => {
+      if (Date.now() - startedAt > 65000) {
+        stopOAuthPolling();
         report(
-          `⚠️ Recibimos tu código de autorización, pero Raphael no respondió en tu PC (${bridgeErr.message}). Abre Raphael e inténtalo de nuevo.`,
+          `⚠️ Tiempo de espera agotado para ${service.toUpperCase()}. Si cerraste la ventana, puedes intentarlo de nuevo.`,
           "error",
         );
+        return;
       }
-    }
+
+      try {
+        const res = await fetch(
+          `${bridge}/oauth_status?service=${encodeURIComponent(service)}`,
+          {
+            cache: "no-store",
+            mode: "cors",
+            signal: AbortSignal.timeout(2000),
+          },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const serviceData =
+          data && typeof data[service] === "object" ? data[service] : data;
+        const rawState = String(
+          serviceData?.status ||
+            serviceData?.state ||
+            data?.status ||
+            data?.state ||
+            "",
+        ).toLowerCase();
+
+        if (
+          ["success", "completed", "ok", "authorized", "connected"].includes(
+            rawState,
+          )
+        ) {
+          stopOAuthPolling();
+          report(
+            serviceData?.message ||
+              data?.message ||
+              `✅ ¡${service.toUpperCase()} vinculado con éxito en Raphael!`,
+            "success",
+          );
+          await checkRaphael();
+        } else if (
+          [
+            "cancelled",
+            "canceled",
+            "cancelled_or_timeout",
+            "timeout",
+            "error",
+            "denied",
+            "failed",
+          ].includes(rawState)
+        ) {
+          stopOAuthPolling();
+          report(
+            serviceData?.message ||
+              serviceData?.error ||
+              data?.message ||
+              data?.error ||
+              `❌ Autorización de ${service.toUpperCase()} cancelada o expirada.`,
+            "error",
+          );
+          await checkRaphael();
+        }
+      } catch {
+        // Ignorar errores transitorios mientras el usuario completa el login
+      }
+    }, 1500);
   }
 
   function collectCredentials() {
@@ -126,11 +162,15 @@
   function envEscape(value) {
     if (/^[A-Za-z0-9_./:@+=,-]*$/.test(value)) return value;
     if (/[\r\n\x00\\]/.test(value)) {
-      throw new Error("Un valor contiene caracteres que no se pueden representar de forma segura en .env.");
+      throw new Error(
+        "Un valor contiene caracteres que no se pueden representar de forma segura en .env.",
+      );
     }
     if (!value.includes('"')) return `"${value}"`;
     if (!value.includes("'")) return `'${value}'`;
-    throw new Error("Un valor contiene comillas simples y dobles, no se puede exportar a .env.");
+    throw new Error(
+      "Un valor contiene comillas simples y dobles, no se puede exportar a .env.",
+    );
   }
 
   function buildEnvFile(credentials) {
@@ -143,7 +183,11 @@
       ["AZURE_SPEECH_KEY", credentials.azure_speech_key],
       ["AZURE_SPEECH_REGION", credentials.azure_speech_region],
     ].filter(([, value]) => value);
-    if (!entries.length) throw new Error("Escribe al menos una credencial antes de crear el archivo.");
+    if (!entries.length) {
+      throw new Error(
+        "Escribe al menos una credencial antes de crear el archivo.",
+      );
+    }
     return [
       "# Configuración de Raphael Core",
       "# Copia este archivo a %LOCALAPPDATA%\\Raphael_Core\\.env",
@@ -161,12 +205,17 @@
     }
     report("Enviando la clave directamente a Raphael…");
     try {
-      const result = await postToRaphael("/apply_config", { gemini_api_key: key });
+      const result = await postToRaphael("/apply_config", {
+        gemini_api_key: key,
+      });
       document.querySelector("#gemini-key").value = "";
       report(result.message || "Clave guardada en Raphael.", "success");
       await checkRaphael();
     } catch (error) {
-      report(`${error.message} Puedes descargar un .env como alternativa.`, "error");
+      report(
+        `${error.message} Puedes descargar un .env como alternativa.`,
+        "error",
+      );
       await checkRaphael();
     }
   });
@@ -187,7 +236,10 @@
       report(result.message || "Opciones guardadas en Raphael.", "success");
       await checkRaphael();
     } catch (error) {
-      report(`${error.message} Puedes descargar un .env como alternativa.`, "error");
+      report(
+        `${error.message} Puedes descargar un .env como alternativa.`,
+        "error",
+      );
       await checkRaphael();
     }
   });
@@ -200,23 +252,40 @@
         spotify: "Solicitando a Raphael que abra Spotify en tu navegador…",
         whatsapp: "Solicitando a Raphael que muestre el código QR…",
       };
+      stopOAuthPolling();
       report(messages[service] || "Conectando…");
+
       try {
         if (service === "spotify") {
-          const clientId = document.querySelector("#spotify-client-id").value.trim();
-          const clientSecret = document.querySelector("#spotify-client-secret").value.trim();
+          const clientId = document
+            .querySelector("#spotify-client-id")
+            .value.trim();
+          const clientSecret = document
+            .querySelector("#spotify-client-secret")
+            .value.trim();
           if (clientId) {
             const config = { spotify_client_id: clientId };
             if (clientSecret) config.spotify_client_secret = clientSecret;
             await postToRaphael("/apply_config", config);
           }
         }
+
         const result = await postToRaphael("/trigger_oauth", { service });
-        // Si el backend de Raphael devuelve una auth_url directa, redirigir el navegador de inmediato
+
         if (result.auth_url) {
           window.location.href = result.auth_url;
           return;
         }
+
+        if (service === "google" || service === "spotify") {
+          report(
+            result.message ||
+              `Completa la autorización de ${service.toUpperCase()} en la pestaña que se abrió (tienes 60 s)…`,
+          );
+          startOAuthPolling(service);
+          return;
+        }
+
         report(
           service === "whatsapp"
             ? "Raphael abrió el panel de WhatsApp. Escanea el QR con tu teléfono."
@@ -225,7 +294,10 @@
         );
         await checkRaphael();
       } catch (error) {
-        report(`${error.message} Abre Raphael en este PC y vuelve a intentarlo.`, "error");
+        report(
+          `${error.message} Abre Raphael en este PC y vuelve a intentarlo.`,
+          "error",
+        );
         await checkRaphael();
       }
     });
@@ -243,26 +315,35 @@
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      report("Archivo .env descargado. Contiene solo los datos que escribiste en este navegador.", "success");
+      report(
+        "Archivo .env descargado. Contiene solo los datos que escribiste en este navegador.",
+        "success",
+      );
     } catch (error) {
       report(error.message, "error");
     }
   });
-// Detecta tanto ?code=... (si Spotify volvió directo a GitHub) como ?oauth_success=1 (si pasó por 127.0.0.1:8888 y redirigió aquí)
+
   async function handleIncomingOAuthCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const error = params.get("error");
     const oauthSuccess = params.get("oauth_success");
-    const service = params.get("service") || "spotify";
+    const state = params.get("state") || "";
+    const service =
+      params.get("service") || (state.includes("google") ? "google" : "spotify");
+    const fullCallbackUrl = window.location.href;
 
     if (!code && !error && !oauthSuccess) return;
 
-    // Limpia la URL en el navegador para que quede siempre https://dazzvlt.github.io/raphael-assistant/
     window.history.replaceState({}, document.title, window.location.pathname);
 
     if (oauthSuccess === "1") {
-      report(`✅ ¡${service.toUpperCase()} vinculado con éxito en tu PC! Ya puedes volver a Raphael.`, "success");
+      report(
+        `✅ ¡${service.toUpperCase()} vinculado con éxito en tu PC! Ya puedes volver a Raphael.`,
+        "success",
+      );
+      await checkRaphael();
       return;
     }
 
@@ -276,15 +357,37 @@
       const result = await postToRaphael("/oauth_callback", {
         service,
         code,
-        redirect_url: window.location.origin + window.location.pathname,
+        state,
+        redirect_url: fullCallbackUrl,
       });
-      report(result.message || "✅ ¡Cuenta conectada en Raphael!", "success");
+      report(
+        result.message ||
+          `✅ ¡${service.toUpperCase()} conectado con éxito en Raphael!`,
+        "success",
+      );
       await checkRaphael();
-    } catch {
-      await fetch(`http://127.0.0.1:8888/callback?code=${encodeURIComponent(code)}`, { mode: "no-cors" });
-      report("✅ ¡Autorización enviada a Raphael! Ya puedes volver a la aplicación.", "success");
+    } catch (bridgeErr) {
+      try {
+        await fetch(
+          `http://127.0.0.1:8888/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+          {
+            mode: "no-cors",
+            signal: AbortSignal.timeout(4000),
+          },
+        );
+        report(
+          "✅ ¡Autorización enviada a Raphael (puerto 8888)! Ya puedes volver a la aplicación.",
+          "success",
+        );
+      } catch {
+        report(
+          `⚠️ Recibimos tu autorización, pero Raphael no respondió en tu PC (${bridgeErr.message}).`,
+          "error",
+        );
+      }
     }
   }
+
   checkRaphael().then(() => {
     handleIncomingOAuthCallback();
   });
